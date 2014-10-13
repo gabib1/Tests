@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.tests;
 
-import org.jenkinsci.plugins.tests.ATT.ATTFramework;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -10,64 +9,80 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.xml.bind.JAXBException;
 import jenkins.model.Jenkins;
+import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.tests.ATT.ATTFramework;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 @Extension
-public class TestsManager implements RootAction, Describable<TestsManager> {
-    
-    public static String ProfilesDBPath;
+public class TestsManager implements RootAction, Describable<TestsManager>
+{
+
+    public static String currentProfilesDBPath;
     public ArrayList<ITest> testRepository;
     public ArrayList<Profile> profiles;
     public String currentChosenProfile = "";
-    
+    private final String username;
+    private final String otherPath;
+    private final String ATTPath;
+
     public TestsManager()
     {
-        String username = System.getProperty("user.name");
-        TestsManager.ProfilesDBPath = "/home/" + username + "/profilesDB";
+        username = System.getProperty("user.name");
+        currentProfilesDBPath = "/home/" + username + "/profilesDB";
+        otherPath = "/home/" + username + "/profilesDB/otherProfiles";
+        ATTPath = "/home/" + username + "/profilesDB/profiles";
         this.profiles = new ArrayList<Profile>();
     }
 
     @Override
-    public String getIconFileName() {
-        if (CheckBuildPermissions() == true){
+    public String getIconFileName()
+    {
+        if (CheckBuildPermissions() == true)
+        {
             return "/plugin/Tests/tests-icon.png";
-        }
-        else{
+        } else
+        {
             return null;
         }
     }
 
     @Override
-    public String getDisplayName() {
-        if (CheckBuildPermissions() == true){
+    public String getDisplayName()
+    {
+        if (CheckBuildPermissions() == true)
+        {
             return "Tests";
-        }
-        else{
+        } else
+        {
             return null;
         }
     }
 
     @Override
-    public String getUrlName() {
-        if (CheckBuildPermissions() == true){
+    public String getUrlName()
+    {
+        if (CheckBuildPermissions() == true)
+        {
             return "Tests";
-        }
-        else{
+        } else
+        {
             return null;
         }
     }
-    
+
     private boolean CheckBuildPermissions()
     {
-        for ( Permission permission : Permission.getAll())
+        for (Permission permission : Permission.getAll())
         {
             if (permission.name.equals("Build") == true)
             {
@@ -81,125 +96,145 @@ public class TestsManager implements RootAction, Describable<TestsManager> {
     }
 
     @Override
-    public Descriptor getDescriptor() 
+    public Descriptor getDescriptor()
     {
         System.out.println("In TestsConfig getDescriptor()");
         return (TestsDescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
     }
-    
-    // Set a new Corntab entry using TimerTrigger class
-    public void doSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException
-    {
-        String addProfileSubmit = req.getParameter("profile-add-submit");
-        String removeProfileSubmit = req.getParameter("profile-remove-submit");
-        String saveProfileSubmit = req.getParameter("profile-save-submit");
-        String updateTestsList = req.getParameter("update-tests-list");
-        
-//        Iterator keySetIt = req.getParameterMap().keySet().iterator();
-//        Object key;
-//        while (keySetIt.hasNext())
+
+//    // Set a new Corntab entry using TimerTrigger class
+//    public void doSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException
+//    {
+//        String addProfileSubmit = req.getParameter("profile-add-submit");
+//        String removeProfileSubmit = req.getParameter("profile-remove-submit");
+//        String saveProfileSubmit = req.getParameter("profile-save-submit");
+//        String updateTestsList = req.getParameter("update-tests-list");
+//
+//        if (addProfileSubmit != null)
 //        {
-//            key = keySetIt.next();
-//            System.out.println("key: " + key.toString() + ", value: " + req.getParameter(key.toString()));
+//            String newProfileName = req.getParameter("profile-add-name");
+//            if (newProfileName != null)
+//            {
+//                String pathToNewProfileFile = TestsManager.ProfilesDBPath + "/" + newProfileName + ".profile";
+//                try
+//                {
+//                    Profile profile = new Profile(new File(pathToNewProfileFile))
+//                    {
+//                    };
+//                    this.profiles.add(profile);
+//                } catch (IOException ex)
+//                {
+//                    System.out.println("[ERROR] Failed to create profile " + newProfileName + ", profile's file path is " + pathToNewProfileFile);
+//                    Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+//                }
+//            }
+//        } else if (removeProfileSubmit != null)
+//        {
+//            String profileName = req.getParameter("profile");
+//            if (profileName != null)
+//            {
+//                Profile profile = getProfileByName(profileName);
+//                if (profile != null)
+//                {
+//                    profile.removeFromDB();
+//                    this.profiles.remove(profile);
+//                }
+//                this.currentChosenProfile = profileName;
+//            }
+//        } else if (saveProfileSubmit != null)
+//        {
+//            System.out.println("----------------------------------------------------");
+//            System.out.println("----------------------------------------------------");
+//            System.out.println("----------------in saveProfileSubmit----------------");
+//            System.out.println("----------------------------------------------------");
+//            System.out.println("----------------------------------------------------");
+//
+//            String profileName = req.getParameter("profile");
+//            if (profileName != null)
+//            {
+//                Profile profile = getProfileByName(profileName);
+//                profile.removeAllTests();
+//                Object key;
+//                Iterator keySetIt = req.getParameterMap().keySet().iterator();
+//                while (keySetIt.hasNext())
+//                {
+//                    key = keySetIt.next();
+//                    System.out.println("key :" + key);
+//                    if (key.toString().startsWith("test_"))
+//                    {
+//                        String testName = req.getParameter(key.toString()).replaceFirst("test_", "");
+//                        System.out.println("testName=" + testName);
+//                        if (testName != null)
+//                        {
+//                            try
+//                            {
+//                                profile.addTest(getTestByName(testName));
+//                            } catch (IOException ex)
+//                            {
+//                                System.out.println("[ERROR] Failed to add test: " + testName + ", to " + profileName + " profile");
+//                                Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
+//                        }
+//                    }
+//                    //                    System.out.println("key: " + key.toString() + ", value: " + req.getParameter(key.toString()));
+//                }
+//                this.currentChosenProfile = profileName;
+//
+//            }
+//        } else if (updateTestsList != null)
+//        {
+//            try
+//            {
+//                int exitCode = ATTFramework.updateTestsList();
+//                if (exitCode != 0)
+//                {
+//                    throw new IOException("[ERROR] updateTestsList return a non zero exit code: " + exitCode);
+//                }
+//            } catch (InterruptedException | IOException ex)
+//            {
+//                System.out.println("[ERROR] Failed to update the tests list");
+//                Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+//            }
 //        }
-        
-        if (isBlank(new String[]{addProfileSubmit}) == false)
-        {
-            String newProfileName = req.getParameter("profile-add-name");
-            if (isBlank(new String[]{newProfileName}) == false)
-            {
-                String pathToNewProfileFile = TestsManager.ProfilesDBPath + "/" + newProfileName + ".profile";
-                try 
-                {
-                    Profile profile = new Profile(new File(pathToNewProfileFile));
-                    this.profiles.add(profile);
-                } catch (IOException ex) {
-                    System.out.println("[ERROR] Failed to create profile " + newProfileName + ", profile's file path is " + pathToNewProfileFile);
-                    Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
-        else if (isBlank(new String[]{removeProfileSubmit}) == false)
-        {
-            String profileName = req.getParameter("profile");
-            if (isBlank(new String[]{profileName}) == false)
-            {
-                Profile profile = getProfileByName(profileName);
-                if (profile != null)
-                {
-                    profile.removeFromDB();;
-                    this.profiles.remove(profile);
-                }
-                this.currentChosenProfile = profileName;
-            }
-        }
-        else if (isBlank(new String[]{saveProfileSubmit}) == false)
-        {
-            String profileName = req.getParameter("profile");
-            if (isBlank(new String[]{profileName}) == false)
-            {
-                Profile profile = getProfileByName(profileName);
-                if (profile != null)
-                {
-                    profile.removeAllTests();
-                    Object key;
-                    Iterator keySetIt = req.getParameterMap().keySet().iterator();
-                    while (keySetIt.hasNext())
-                    {
-                        key = keySetIt.next();
-                        if (key.toString().startsWith("test_"))
-                        {
-                            String testName = req.getParameter(key.toString()).replaceFirst("test_", "");
-                            System.out.println("testName=" + testName);
-                            if (isBlank(new String[]{testName}) == false)
-                            {
-                                try{
-                                    profile.add(getTestByName(testName));
-                                }catch(IOException ex){
-                                    System.out.println("[ERROR] Failed to add test: " + testName + ", to "+ profileName + " profile");
-                                    Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-                            }
-                        }
-    //                    System.out.println("key: " + key.toString() + ", value: " + req.getParameter(key.toString()));
-                    }
-                    this.currentChosenProfile = profileName;
-                }
-                else
-                {
-                    System.out.println("[ERROR] profile: " +  profileName + " not found");
-                }
-            }
-        }
-        else if(updateTestsList != null)
-        {
-            try {
-                int exitCode = ATTFramework.updateTestsList();
-                if (exitCode != 0){
-                    throw new IOException("[ERROR] updateTestsList return a non zero exit code: " + exitCode);
-                }
-            } catch (InterruptedException | IOException ex) {
-                System.out.println("[ERROR] Failed to update the tests list");
-                Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        
-        rsp.sendRedirect2(req.getReferer());
+//
+//        rsp.sendRedirect2(req.getReferer());
+//    }
+    public ArrayList<Profile> getOtherProfiles()
+    {
+        currentProfilesDBPath = otherPath;
+
+        return getProfiles();
     }
-    
+
+    public ArrayList<Profile> getATTProfiles()
+    {
+        currentProfilesDBPath = ATTPath;
+
+        return getProfiles();
+    }
+
     public ArrayList<Profile> getProfiles()
     {
-        File profileDBDir = new File(TestsManager.ProfilesDBPath);
+        System.out.println("--------           getProfiles()    -------");
+        System.out.println("Path : " + currentProfilesDBPath);
+
+        File profileDBDir = null;
+
+        profileDBDir = new File(currentProfilesDBPath);
+
         if (profileDBDir.isDirectory() == true)
         {
             this.profiles = new ArrayList<Profile>();
             File[] profileFiles = profileDBDir.listFiles(new ProfilesFileFilter());
             for (File profileFile : profileFiles)
             {
-                try {
-                    Profile profile = new Profile(profileFile);
+                try
+                {
+                    Profile profile = new Profile(profileFile)
+                    {
+                    };
                     ArrayList<String> testsNameList = profile.getTestsNameList();
-                    profile.removeAllTests();
+                    //  profile.removeAllTests();
                     for (String testName : testsNameList)
                     {
                         ITest test = null;
@@ -207,64 +242,102 @@ public class TestsManager implements RootAction, Describable<TestsManager> {
                         {
                             getTests();
                         }
-                        for (ITest testIt : this.testRepository)
+
+                        // will check if the test wasn't removed from the test repository of the bash tests
+                        if (test == null)
                         {
-                            if (testIt.getName().equals(testName) == true)
+                            for (ITest testIt : this.testRepository)
                             {
-                                test = testIt;
-                                break;
+                                if (testIt.getName().equals(testName))
+                                {
+                                    test = testIt;
+                                    break;
+                                }
                             }
                         }
-                        if (test != null)
-                        {
-                            profile.add(test);
-                        }
-                        else
+
+                        if (test == null)
                         {
                             System.out.println("[ERROR] Test " + testName + " is listed in the profile " + profile.getName() + " but doesn't exist in the tests repository");
                         }
                     }
-                    
+
                     this.profiles.add(profile);
-                } catch (IOException ex) {
+                } catch (IOException ex)
+                {
                     System.out.println("[ERROR] Creating new profile for file: " + profileFile + " failed");
                     Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-        }
-        else
+        } else
         {
             System.out.println("[ERROR] Profiles DB doesn't exist under " + profileDBDir.getAbsolutePath());
         }
-        
+
+        System.out.println(
+                "--------------------------------------------------");
+        System.out.println(
+                "----------FINISHED-----------");
+        System.out.println(
+                "--------------------------------------------------");
+
         return this.profiles;
     }
-    
+
+    //Oren
     public ArrayList<Group> getTests()
     {
         ArrayList<Group> groupsList = null;
-        try {
+        try
+        {
             ATTFramework attFramework = new ATTFramework();
             this.testRepository = attFramework.getTests();
             groupsList = attFramework.getTestsByGroups();
-        } catch (JAXBException ex) {
-            Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+
+        } catch (JAXBException ex)
+        {
+            Logger.getLogger(TestsManager.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
         return groupsList;
+    }
+
+    //Oren
+    public ArrayList<ITest> getOtherTests()
+    {
+        System.out.println("*******************************************");
+        System.out.println("In   getOtherTests");
+
+        ArrayList<Group> groupsList = null;
+        try
+        {
+            ATTFramework attFramework = new ATTFramework();
+            this.testRepository = attFramework.getOtherTests();
+
+        } catch (JAXBException ex)
+        {
+            Logger.getLogger(TestsManager.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return testRepository;
     }
 
     public String getChosenProfile()
     {
         System.out.println("In getChosenProfile()");
         String chosenProfile = this.currentChosenProfile;
-        System.out.println(chosenProfile);
+        System.out.println("chosenProfile-------------------------    " + chosenProfile);
         this.currentChosenProfile = "";
         return chosenProfile;
+
     }
-        
+
     @JavaScriptMethod
     public ArrayList<String> doGetTestsInProfile(String profileName)
     {
+        System.out.println("****************************************");
+        System.out.println("**********doGetTestsInProfile***********");
+
         Profile profile = null;
         System.out.println("in doGetTestsInProfile");
         if (profileName != null)
@@ -283,45 +356,49 @@ public class TestsManager implements RootAction, Describable<TestsManager> {
                 {
                     System.out.println(test);
                 }
+                System.out.println("returen NOT NULL");
                 return profile.getTestsNameList();
-            }
-            else
+            } else
             {
                 System.out.println("Profile " + profileName + " not found");
             }
-        }
-        else
+        } else
         {
             System.out.println("Profile name is empty");
         }
         return null;
+
     }
-        
+
+
     @Extension
     public static final class TestsDescriptorImpl extends TestsConfigDescriptor
     {
-    } 
+    }
 
-    private class ProfilesFileFilter implements FileFilter 
+    private class ProfilesFileFilter implements FileFilter
     {
+
         @Override
-        public boolean accept(File pathname) {
+        public boolean accept(File pathname)
+        {
             return pathname.getName().endsWith(".profile");
         }
     }
-    
+
     private boolean isBlank(String[] variables)
     {
-        for (String variable : variables) 
+        for (String variable : variables)
         {
-            if (variable == null || variable.isEmpty() == true) {
+            if (variable == null || variable.isEmpty() == true)
+            {
                 return true;
             }
         }
         return false;
     }
 
-    private Profile getProfileByName(String profileName) 
+    private Profile getProfileByName(String profileName)
     {
         for (Profile p : this.profiles)
         {
@@ -333,7 +410,7 @@ public class TestsManager implements RootAction, Describable<TestsManager> {
         return null;
     }
 
-    private ITest getTestByName(String testName) 
+    private ITest getTestByName(String testName)
     {
         for (ITest t : this.testRepository)
         {
@@ -344,5 +421,122 @@ public class TestsManager implements RootAction, Describable<TestsManager> {
         }
         return null;
     }
-}
 
+    // Set a new Corntab entry using TimerTrigger class
+    public void doSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException
+    {
+        Map<String, String> formOptionsMap = new HashMap();
+        String formOption = null;
+
+        formOptionsMap.put("profile-add-submit", "add");
+        formOptionsMap.put("profile-remove-submit", "remove");
+        formOptionsMap.put("profile-save-submit", "save");
+        formOptionsMap.put("update-tests-list", "update");
+
+        for (Map.Entry<String, String> entry : formOptionsMap.entrySet())
+        {
+            System.out.println(entry.getKey() + "/" + entry.getValue());
+            formOption = ((req.getParameter(entry.getKey()) == null) ? null : entry.getValue());
+            System.out.println("formOption ------  " + formOption);
+            if (formOption != null)
+            {
+                break;
+            }
+        }
+
+        String profileDIrPath = null;
+
+        String profileName = req.getParameter("profile");
+
+        switch (formOption)
+        {
+            case "add":
+
+                String newProfileName = req.getParameter("profile-add-name");
+                if (newProfileName != null)
+                {
+                    String pathToNewProfileFile = currentProfilesDBPath + "/" + newProfileName + ".profile";
+                    try
+                    {
+                        Profile profile = new Profile(new File(pathToNewProfileFile))
+                        {
+                        };
+                        this.profiles.add(profile);
+                    } catch (IOException ex)
+                    {
+                        System.out.println("[ERROR] Failed to create profile " + newProfileName + ", profile's file path is " + pathToNewProfileFile);
+                        Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                break;
+
+            case "remove":
+                System.out.println("----------------case: remove----------------");
+
+                if (profileName != null)
+                {
+                    Profile profile = getProfileByName(profileName);
+                    if (profile != null)
+                    {
+                        profile.removeFromDB();
+                        this.profiles.remove(profile);
+                    }
+                    this.currentChosenProfile = profileName;
+                }
+                break;
+
+            case "save":
+
+                System.out.println("----------------case: saveProfileSubmit----------------");
+
+                if (profileName != null)
+                {
+                    Profile profile = getProfileByName(profileName);
+                    profile.removeAllTests();
+                    Object key;
+                    Iterator keySetIt = req.getParameterMap().keySet().iterator();
+                    while (keySetIt.hasNext())
+                    {
+                        key = keySetIt.next();
+                        System.out.println("key :" + key);
+                        if (key.toString().startsWith("test_"))
+                        {
+                            String testName = req.getParameter(key.toString()).replaceFirst("test_", "");
+                            System.out.println("testName=" + testName);
+                            if (testName != null)
+                            {
+                                try
+                                {
+                                    profile.addTest(getTestByName(testName));
+                                } catch (IOException ex)
+                                {
+                                    System.out.println("[ERROR] Failed to add test: " + testName + ", to " + profileName + " profile");
+                                    Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            }
+                        }
+                    }
+                    this.currentChosenProfile = profileName;
+                    break;
+                }
+
+            case "update":
+
+                try
+                {
+                    int exitCode = ATTFramework.updateTestsList();
+                    if (exitCode != 0)
+                    {
+                        throw new IOException("[ERROR] updateTestsList return a non zero exit code: " + exitCode);
+                    }
+                } catch (InterruptedException | IOException ex)
+                {
+                    System.out.println("[ERROR] Failed to update the tests list");
+                    Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
+        }
+
+        rsp.sendRedirect2(req.getReferer());
+    }
+
+}

@@ -3,21 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package org.jenkinsci.plugins.tests.ATT;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
@@ -40,6 +30,7 @@ import org.jenkinsci.plugins.tests.ITestTool;
  */
 public class ATTFramework implements ITestTool
 {
+
     String testSuitePath = "";
     String testsRepositoryXMLPath = "";
     static String updateTestsListScript = "";
@@ -48,18 +39,21 @@ public class ATTFramework implements ITestTool
     ArrayList<ITest> tests = new ArrayList<>();
     ArrayList<Group> groups = new ArrayList<>();
     JAXBContext jaxbContext;
-    
+    String username;
+
     public ATTFramework() throws JAXBException
     {
-        String username = System.getProperty("user.name");
+        username = System.getProperty("user.name");
         this.testSuitePath = "/home/" + username + "/BuildSystem/cc-views/" + username + "_ATT_1.1_int/vobs/HostTool_AT/PyATT/Test_Suite";
         this.testsRepositoryXMLPath = this.testSuitePath + "/tests_repository.xml";
         ATTFramework.updateTestsListScript = this.testSuitePath + "/update_tests_list.sh";
         if (ATTFramework.ATTFrameworkLog.exists() == false)
         {
-            try {
+            try
+            {
                 ATTFramework.ATTFrameworkLog.createNewFile();
-            } catch (IOException ex) {
+            } catch (IOException ex)
+            {
                 System.out.println("Log file (" + ATTFramework.ATTFrameworkLog.getAbsolutePath() + ") couldn't be created");
                 Logger.getLogger(ATTFramework.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -67,7 +61,7 @@ public class ATTFramework implements ITestTool
         ClassLoader cl = org.jenkinsci.plugins.tests.ATT.ObjectFactory.class.getClassLoader();
         this.jaxbContext = JAXBContext.newInstance("org.jenkinsci.plugins.tests.ATT", cl);
     }
-    
+
     public String getName()
     {
         return "ATT";
@@ -81,16 +75,44 @@ public class ATTFramework implements ITestTool
         File testsRepositoryFile = new File(testsRepositoryXMLPath);
         Source source = new StreamSource(testsRepositoryFile);
         JAXBElement<ATTRepository> AttRepositoryElement = (JAXBElement<ATTRepository>) unmarshaller.unmarshal(source, ATTRepository.class);
-        
+
         for (Test test : AttRepositoryElement.getValue().testSuite.getTest())
         {
             ATTTest attTest = new ATTTest(test.getName(), test.getPackage(), test.getModule(), test.getDescription());
             this.tests.add(attTest);
         }
-        
+
         return this.tests;
     }
-    
+
+    //Oren
+    public ArrayList<ITest> getOtherTests()
+    {
+        System.out.println("");
+        System.out.println("In getOtherTests");
+        String otherTestDir = "/home/" + this.username + "/BuildSystem/cc-views/" + username + "_Other-tests_int/vobs/test scripts/";
+        System.out.println("otherTestDir : " + otherTestDir);
+        File file = new File(otherTestDir);
+        File[] listFiles = file.listFiles();
+        System.out.println("File list ");
+
+        for (File test : listFiles)
+        {
+            String testName = test.getName();
+            int pointIndex = testName.indexOf(".");
+            if (pointIndex != -1)
+            {
+                testName = testName.substring(0 , pointIndex);
+            }
+
+            System.out.println("test name : " + testName);
+            OtherTest otherTest = new OtherTest(testName);
+            this.tests.add(otherTest);
+        }
+
+        return this.tests;
+    }
+
     public ArrayList<Group> getTestsByGroups() throws JAXBException
     {
         if (this.tests.isEmpty() == true)
@@ -98,14 +120,14 @@ public class ATTFramework implements ITestTool
             getTests();
         }
         sortTestsToGroups();
-        
+
         return this.groups;
     }
 
-    private void sortTestsToGroups() 
+    private void sortTestsToGroups()
     {
-        
-        for(ITest test : this.tests)
+
+        for (ITest test : this.tests)
         {
             boolean addedCurrTest = false;
             for (Group group : this.groups)
@@ -134,35 +156,31 @@ public class ATTFramework implements ITestTool
             command.add(ATTFramework.updateTestsListScript);
             System.out.println("Update command: " + command.get(0));
             return executeScript(command, redirect);
-        }
-        else
+        } else
         {
             System.out.println("[ERROR] update_tests_list.sh not found under " + ATTFramework.updateTestsListScript);
             return 1;
         }
     }
-    
+
     private static int executeScript(ArrayList<String> command, ProcessBuilder.Redirect redirect) throws IOException, InterruptedException
     {
         ProcessBuilder pb = new ProcessBuilder().inheritIO();
         pb.redirectErrorStream(true);
-        
+
         pb.redirectOutput(redirect);
         return pb.command(command).start().waitFor();
     }
-    
-    
-    
-    
-    
-    
-    
+
     public class ATTRepositoryValidationEventHandler implements ValidationEventHandler
     {
+
         @Override
-        public boolean handleEvent(ValidationEvent ve) {
+        public boolean handleEvent(ValidationEvent ve)
+        {
             if (ve.getSeverity() == ValidationEvent.FATAL_ERROR
-                    || ve.getSeverity() == ValidationEvent.ERROR) {
+                    || ve.getSeverity() == ValidationEvent.ERROR)
+            {
                 ValidationEventLocator locator = ve.getLocator();
                 //Print message from valdation event
                 System.out.println("Invalid booking document: "

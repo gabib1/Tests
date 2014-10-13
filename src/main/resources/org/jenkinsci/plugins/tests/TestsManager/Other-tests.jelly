@@ -7,7 +7,7 @@
 <script type="text/javascript" src="${rootURL}/plugin/Tests/tests.js"/>
 <script type="text/javascript" src="${rootURL}/plugin/Tests/jquery-1.11.0.min.js"/>
 <l:header/>
- <l:side-panel>
+    <l:side-panel>
         <l:tasks>
             <l:task icon="images/24x24/up.gif" href="${rootURL}/" title="${%Back to Jenkins}"/>
             <l:task icon="images/24x24/up.gif" href="index" title="ATT-tests"/>
@@ -21,9 +21,9 @@
                     <label>Choose profile:</label>
                     <select name="profile" style="width:250px" id="profile" onchange="setTestsCheckboxs()">
               <option name="FirstEmptyLine">
-              </option>                      
-      <j:set var="chosenProfile" value="${it.getChosenProfile()}"/>
-                        <j:forEach var="profile" items="${it.getATTProfiles()}" varStatus="loop">
+              </option>    
+                        <j:set var="chosenProfile" value="${it.getChosenProfile()}"/>
+                        <j:forEach var="profile" items="${it.getOtherProfiles()}" varStatus="loop">
                             <j:set var="currProfile" value="${profile.getName()}"/>
                             <j:if test="${currProfile == chosenProfile}">
                                 <option name="${profile.getName()}" value="${profile.getName()}" title="${profile.getName()}" >${profile.getName()}</option>
@@ -41,29 +41,36 @@
                     <input type="textbox" name="profile-add-name" value=""/>
                     <f:submit name="profile-add-submit" value="Add"/>
                 </tr>
+ <!--
                 <tr>
                     <td>
                         <f:submit name="update-tests-list" value="Update tests list"/>
                     </td>
                 </tr>
+  -->
             </table>
-            
+
             <table>
+<!--
                 <j:forEach var="group" items="${it.getTests()}" varStatus="loop">
                     <tr>
                         <td>
                             <p><b>${group.getName()}</b></p>
-                            <!--<f:checkbox name="${group.getName()}" value="${group.getName()}" title="${group.getName()}" checked="${group.isChecked()}"/>-->
                         </td>
                     </tr>
-                    <j:forEach var="test" items="${group.getTests()}" varStatus="loop">
+  -->
+
+                    <j:forEach var="test" items="${it.getOtherTests()}" varStatus="loop">
                         <tr>
                             <td style="text-indent:25px;">
-                                <f:checkbox name="test_${test.getName()}" value="${test.getName()}" title="${test.getName()}" checked="${test.isChecked()}"/>
+                                <f:checkbox name="test_${test.getName()}" value="${test.getName()}" title="${test.getName()}" />
                             </td>
                         </tr>
                     </j:forEach>
+<!--
+
                 </j:forEach>
+-->
                 <tr>
                     <td>
                         <f:submit name="profile-save-submit" value="Save"/>

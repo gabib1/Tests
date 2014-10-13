@@ -3,7 +3,6 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package org.jenkinsci.plugins.tests;
 
 import java.io.BufferedReader;
@@ -24,18 +23,17 @@ import java.util.logging.Logger;
  *
  * @author gavrielk
  */
-public class Profile 
+public abstract class Profile
 {
+
     String name;
-    ArrayList<ITest> tests;
     File profileFile;
-    
+
 //    public Profile(String name)
 //    {
 //        setName(name);
 //        this.tests = new ArrayList<ITest>();
 //    }
-    
     public Profile(File profileFile) throws IOException
     {
         this.profileFile = profileFile;
@@ -44,74 +42,83 @@ public class Profile
             this.profileFile.createNewFile();
         }
         setName(this.profileFile.getName().substring(0, this.profileFile.getName().indexOf(".profile")));
-        
-        this.tests = new ArrayList<ITest>();
+
     }
-    
+
     public String getName()
     {
         return this.name;
     }
-    
+
     public void setName(String name)
     {
         this.name = name;
     }
-    
-    public void add(ITest test) throws IOException
+
+    public void addTest(ITest test) throws IOException
     {
-        FileWriter out = new FileWriter(this.profileFile, true);
-        out.write(test.getGroup() + "|" + test.getName() + "\n");
-        out.close();
-        this.tests.add(test);
+        try (FileWriter out = new FileWriter(this.profileFile, true))
+        {
+            out.write(test.getGroup() + "|" + test.getName() + "\n");
+            out.close();
+        }
     }
-    
+
     public void removeAllTests()
     {
-        try (PrintWriter writer = new PrintWriter(this.profileFile)) 
+        try (PrintWriter writer = new PrintWriter(this.profileFile))
         {
             writer.print("");
             writer.close();
-        } catch (FileNotFoundException ex) {
+        } catch (FileNotFoundException ex)
+        {
             Logger.getLogger(Profile.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     public void removeFromDB()
     {
         this.profileFile.delete();
     }
 
     /**
-     * Note: this method uses the file that is held as a data member and passed in the constructor
+     * Note: this method uses the file that is held as a data member and passed
+     * in the constructor
+     *
      * @return List of names of all tests this profile holds
      */
-    public ArrayList<String> getTestsNameList() 
+    public ArrayList<String> getTestsNameList()
     {
-        ArrayList<String> testsList = new ArrayList<String>();
+        System.out.println("^^^^^^^^^       getTestsNameList()     ^^^^^^^^^^^^^");
+        ArrayList<String> testsList = new ArrayList<>();
         InputStream fis;
         BufferedReader br;
         String line;
 
-        try 
+        try
         {
             fis = new FileInputStream(this.profileFile);
             br = new BufferedReader(new InputStreamReader(fis, Charset.forName("UTF-8")));
-            while ((line = br.readLine()) != null) 
+            while ((line = br.readLine()) != null)
             {
+                System.out.println("line---------:       " + line);
                 String testName = line.substring(line.indexOf('|') + 1);
+                System.out.println("testName   :       " + testName);
+
                 testsList.add(testName);
             }
 
             br.close();
-            
-        } catch (FileNotFoundException | ArrayIndexOutOfBoundsException | NullPointerException ex) {
+
+        } catch (FileNotFoundException | ArrayIndexOutOfBoundsException | NullPointerException ex)
+        {
             System.out.println("File not found");
 //            Logger.getLogger(ProjectConfiguration.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
+        } catch (IOException ex)
+        {
             Logger.getLogger(Profile.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         return testsList;
     }
 }
