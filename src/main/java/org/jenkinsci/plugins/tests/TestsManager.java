@@ -18,6 +18,7 @@ import javax.servlet.ServletException;
 import javax.xml.bind.JAXBException;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
+import org.apache.tools.ant.types.resources.Files;
 import org.jenkinsci.plugins.tests.ATT.ATTFramework;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -34,6 +35,7 @@ public class TestsManager implements RootAction, Describable<TestsManager>
     private final String username;
     private final String otherPath;
     private final String ATTPath;
+    private final String oldProfilesPath;
 
     public TestsManager()
     {
@@ -41,7 +43,9 @@ public class TestsManager implements RootAction, Describable<TestsManager>
         currentProfilesDBPath = "/home/" + username + "/profilesDB";
         otherPath = "/home/" + username + "/profilesDB/otherProfiles";
         ATTPath = "/home/" + username + "/profilesDB/profiles";
+        oldProfilesPath = "/home/" + username + "/profilesDB";
         this.profiles = new ArrayList<Profile>();
+
     }
 
     @Override
@@ -98,107 +102,9 @@ public class TestsManager implements RootAction, Describable<TestsManager>
     @Override
     public Descriptor getDescriptor()
     {
-        System.out.println("In TestsConfig getDescriptor()");
         return (TestsDescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
     }
 
-//    // Set a new Corntab entry using TimerTrigger class
-//    public void doSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException
-//    {
-//        String addProfileSubmit = req.getParameter("profile-add-submit");
-//        String removeProfileSubmit = req.getParameter("profile-remove-submit");
-//        String saveProfileSubmit = req.getParameter("profile-save-submit");
-//        String updateTestsList = req.getParameter("update-tests-list");
-//
-//        if (addProfileSubmit != null)
-//        {
-//            String newProfileName = req.getParameter("profile-add-name");
-//            if (newProfileName != null)
-//            {
-//                String pathToNewProfileFile = TestsManager.ProfilesDBPath + "/" + newProfileName + ".profile";
-//                try
-//                {
-//                    Profile profile = new Profile(new File(pathToNewProfileFile))
-//                    {
-//                    };
-//                    this.profiles.add(profile);
-//                } catch (IOException ex)
-//                {
-//                    System.out.println("[ERROR] Failed to create profile " + newProfileName + ", profile's file path is " + pathToNewProfileFile);
-//                    Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
-//                }
-//            }
-//        } else if (removeProfileSubmit != null)
-//        {
-//            String profileName = req.getParameter("profile");
-//            if (profileName != null)
-//            {
-//                Profile profile = getProfileByName(profileName);
-//                if (profile != null)
-//                {
-//                    profile.removeFromDB();
-//                    this.profiles.remove(profile);
-//                }
-//                this.currentChosenProfile = profileName;
-//            }
-//        } else if (saveProfileSubmit != null)
-//        {
-//            System.out.println("----------------------------------------------------");
-//            System.out.println("----------------------------------------------------");
-//            System.out.println("----------------in saveProfileSubmit----------------");
-//            System.out.println("----------------------------------------------------");
-//            System.out.println("----------------------------------------------------");
-//
-//            String profileName = req.getParameter("profile");
-//            if (profileName != null)
-//            {
-//                Profile profile = getProfileByName(profileName);
-//                profile.removeAllTests();
-//                Object key;
-//                Iterator keySetIt = req.getParameterMap().keySet().iterator();
-//                while (keySetIt.hasNext())
-//                {
-//                    key = keySetIt.next();
-//                    System.out.println("key :" + key);
-//                    if (key.toString().startsWith("test_"))
-//                    {
-//                        String testName = req.getParameter(key.toString()).replaceFirst("test_", "");
-//                        System.out.println("testName=" + testName);
-//                        if (testName != null)
-//                        {
-//                            try
-//                            {
-//                                profile.addTest(getTestByName(testName));
-//                            } catch (IOException ex)
-//                            {
-//                                System.out.println("[ERROR] Failed to add test: " + testName + ", to " + profileName + " profile");
-//                                Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
-//                            }
-//                        }
-//                    }
-//                    //                    System.out.println("key: " + key.toString() + ", value: " + req.getParameter(key.toString()));
-//                }
-//                this.currentChosenProfile = profileName;
-//
-//            }
-//        } else if (updateTestsList != null)
-//        {
-//            try
-//            {
-//                int exitCode = ATTFramework.updateTestsList();
-//                if (exitCode != 0)
-//                {
-//                    throw new IOException("[ERROR] updateTestsList return a non zero exit code: " + exitCode);
-//                }
-//            } catch (InterruptedException | IOException ex)
-//            {
-//                System.out.println("[ERROR] Failed to update the tests list");
-//                Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
-//            }
-//        }
-//
-//        rsp.sendRedirect2(req.getReferer());
-//    }
     public ArrayList<Profile> getOtherProfiles()
     {
         currentProfilesDBPath = otherPath;
@@ -219,7 +125,6 @@ public class TestsManager implements RootAction, Describable<TestsManager>
         System.out.println("Path : " + currentProfilesDBPath);
 
         File profileDBDir = null;
-
         profileDBDir = new File(currentProfilesDBPath);
 
         if (profileDBDir.isDirectory() == true)
@@ -274,13 +179,6 @@ public class TestsManager implements RootAction, Describable<TestsManager>
             System.out.println("[ERROR] Profiles DB doesn't exist under " + profileDBDir.getAbsolutePath());
         }
 
-        System.out.println(
-                "--------------------------------------------------");
-        System.out.println(
-                "----------FINISHED-----------");
-        System.out.println(
-                "--------------------------------------------------");
-
         return this.profiles;
     }
 
@@ -305,7 +203,6 @@ public class TestsManager implements RootAction, Describable<TestsManager>
     //Oren
     public ArrayList<ITest> getOtherTests()
     {
-        System.out.println("*******************************************");
         System.out.println("In   getOtherTests");
 
         ArrayList<Group> groupsList = null;
@@ -326,7 +223,6 @@ public class TestsManager implements RootAction, Describable<TestsManager>
     {
         System.out.println("In getChosenProfile()");
         String chosenProfile = this.currentChosenProfile;
-        System.out.println("chosenProfile-------------------------    " + chosenProfile);
         this.currentChosenProfile = "";
         return chosenProfile;
 
@@ -335,9 +231,6 @@ public class TestsManager implements RootAction, Describable<TestsManager>
     @JavaScriptMethod
     public ArrayList<String> doGetTestsInProfile(String profileName)
     {
-        System.out.println("****************************************");
-        System.out.println("**********doGetTestsInProfile***********");
-
         Profile profile = null;
         System.out.println("in doGetTestsInProfile");
         if (profileName != null)
@@ -369,7 +262,6 @@ public class TestsManager implements RootAction, Describable<TestsManager>
         return null;
 
     }
-
 
     @Extension
     public static final class TestsDescriptorImpl extends TestsConfigDescriptor
@@ -425,9 +317,9 @@ public class TestsManager implements RootAction, Describable<TestsManager>
     // Set a new Corntab entry using TimerTrigger class
     public void doSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException
     {
+        System.out.println("in doSubmit");
         Map<String, String> formOptionsMap = new HashMap();
         String formOption = null;
-
         formOptionsMap.put("profile-add-submit", "add");
         formOptionsMap.put("profile-remove-submit", "remove");
         formOptionsMap.put("profile-save-submit", "save");
@@ -445,15 +337,13 @@ public class TestsManager implements RootAction, Describable<TestsManager>
         }
 
         String profileDIrPath = null;
-
         String profileName = req.getParameter("profile");
-
         switch (formOption)
         {
             case "add":
 
                 String newProfileName = req.getParameter("profile-add-name");
-                if (newProfileName != null)
+                if (newProfileName != null && (!newProfileName.isEmpty()))
                 {
                     String pathToNewProfileFile = currentProfilesDBPath + "/" + newProfileName + ".profile";
                     try
@@ -535,6 +425,36 @@ public class TestsManager implements RootAction, Describable<TestsManager>
                     Logger.getLogger(TestsManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
         }
+
+        // to keep compatability to the old scripts will copy the file to the old profiles
+        //will be deleted when when all change their baselines
+        if ((!formOption.equals("update")) && (currentProfilesDBPath == ATTPath))
+        {
+            System.out.println("---------------------------------");
+
+            // on every change will delete all the old files and copy the new ones
+            File oldDB = new File(oldProfilesPath);
+            String[] list = oldDB.list();
+            for (String fileName : list)
+            {
+                File file = new File(oldProfilesPath + "/" + fileName);
+                if (file.isFile())
+                {
+                    file.delete();
+                }
+            }
+
+            File attNewProfiles = new File(ATTPath);
+            list = attNewProfiles.list();
+            for (String fileName : list)
+            {
+                File srcFile = new File(ATTPath + "/" + fileName);
+                File destFile = new File(oldProfilesPath + "/" + srcFile.getName());
+                FileUtils.copyFile(srcFile, destFile);
+            }
+        }
+        
+        // should be deleted all to this line
 
         rsp.sendRedirect2(req.getReferer());
     }

@@ -10,8 +10,8 @@
  <l:side-panel>
         <l:tasks>
             <l:task icon="images/24x24/up.gif" href="${rootURL}/" title="${%Back to Jenkins}"/>
-            <l:task icon="images/24x24/up.gif" href="index" title="ATT-tests"/>
-            <l:task icon="images/24x24/up.gif" href="Other-tests" title="Other-tests"/>
+            <l:task icon="plugin/Tests/tests1.png" href="index" title="ATT-tests"/>
+            <l:task icon="plugin/Tests/test2.png" href="Other-tests" title="Other-tests"/>
         </l:tasks>
     </l:side-panel>
     <l:main-panel>

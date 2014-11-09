@@ -89,7 +89,7 @@ public abstract class Profile
      */
     public ArrayList<String> getTestsNameList()
     {
-        System.out.println("^^^^^^^^^       getTestsNameList()     ^^^^^^^^^^^^^");
+        System.out.println("getTestsNameList()");
         ArrayList<String> testsList = new ArrayList<>();
         InputStream fis;
         BufferedReader br;
@@ -101,9 +101,9 @@ public abstract class Profile
             br = new BufferedReader(new InputStreamReader(fis, Charset.forName("UTF-8")));
             while ((line = br.readLine()) != null)
             {
-                System.out.println("line---------:       " + line);
+               // System.out.println("line---------:       " + line);
                 String testName = line.substring(line.indexOf('|') + 1);
-                System.out.println("testName   :       " + testName);
+              //  System.out.println("testName   :       " + testName);
 
                 testsList.add(testName);
             }
